@@ -83,7 +83,7 @@ async function getColorDayandSchedule() {
     var halfDaySchedule = "../pictures/halfDaySchedule.png";
     var twoHourDelaySchedule = "../pictures/2HourDelaySchedule.png";
     var threeHourDelaySchedule = "../pictures/3HourDelaySchedule.png";
-    var today = new Date(2026, 8, 1); // month number is one less than actual month (e.g. 8 = Sept) change to new Date(); once done testing
+    var today = new Date(); // month number is one less than actual month (e.g. 8 = Sept)
     var startDate = new Date(2026, 7, 31);
     var colorDay = "Blue";
 

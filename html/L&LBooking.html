@@ -45,7 +45,7 @@
         .teacherArea::-webkit-scrollbar {
             display: none;
         }
-        /* "A BLOCK" / "B BLOCK" heading above each grid */
+        /* "1st BLOCK" / "2nd BLOCK" heading above each grid */
         .blockHeader {
             font-size: 35px;
             color: #F5C842;
@@ -64,13 +64,13 @@
             color: black;
             padding: 8px;
         }
-        /* The smaller line of text under the teacher's name (their room or "ABSENT TODAY") */
+        /* The smaller line of text under the teacher's name (their room or "UNAVAILABLE") */
         .teacherGrid button .roomLine {
             display: block;
             font-size: 15px;
             margin-top: 4px;
         }
-        /* Greys out a teacher's button and makes it unclickable when they are absent */
+        /* Greys out a teacher's button and makes it unclickable when they are unavailable */
         .teacherGrid button.absent {
             background-color: #9E9E9E;
             cursor: default;
@@ -79,18 +79,6 @@
         .noneFound {
             font-size: 25px;
             color: #F5C842;
-        }
-
-        /* Positions the manual refresh button down in the bottom right corner */
-        .refreshButton button {
-            color: black;
-            position: absolute; 
-            bottom: 3vh; 
-            left: 93.75vw; 
-            transform: translate(-50%, -50%); 
-            height: 7vh; 
-            width:11vw; 
-            font-size: 4.25vh;
         }
 
         /* Everything below styles the pop-up you get when you tap a teacher — the dark
@@ -204,12 +192,12 @@
         }
         
     </style>
-    <script defer>
+    <script defer> // block 1 used to be block a and block 2 used to be block b
     document.addEventListener("DOMContentLoaded", function () {
 
         // This URL points at our Google Apps Script — it hands us the teacher list when we
-        // GET it, and emails a sign-up whenever we POST one. Swap in your own deployed URL here.
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyAiJSYpQuwNOsUjAYXZ98hoKAbmdqM5Wb0FYd31McDaNkeFP4ppi6sfBrxLTSkrgkQ/exec";
+        // GET it, and emails a sign-up whenever we POST one. MUST BE UPDATED EACH TIME.
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyl8VCxoT-39RK4zpAy_oD0NzzbZb-P2XnVid5Xq_E-BWasqFIbKlA50wDofyFYvL9_/exec";
 
         // If the kiosk loses internet and can't reach the sheet, we fall back to this list instead
         const FALLBACK = [];
@@ -226,7 +214,7 @@
             const room = (cols[1] || "").trim();
             const avail = (cols[2] || "").trim();
             if (!name || name.toLowerCase().startsWith("teacher name")) return null;
-            const block = avail.charAt(0).toUpperCase() === "B" ? "B" : "A";
+            const block = avail.charAt(0).toUpperCase() === "2" ? "2" : "1";
             return {
                 name: name,
                 room: room,
@@ -280,7 +268,7 @@
                 if (t.absent) {
                     btn.className = "absent";
                     btn.disabled = true;
-                    btn.innerHTML = t.name + '<span class="roomLine">ABSENT TODAY</span>';
+                    btn.innerHTML = t.name + '<span class="roomLine">UNAVAILABLE</span>';
                 } else {
                     btn.innerHTML = t.name +
                         '<span class="roomLine">' +
@@ -289,7 +277,7 @@
                     btn.onclick = function () { openBooking(t); };
                 }
 
-                if (t.block === "B") { gridB.appendChild(btn); countB++; }
+                if (t.block === "2") { gridB.appendChild(btn); countB++; }
                 else { gridA.appendChild(btn); countA++; }
             });
 
@@ -366,7 +354,7 @@
             document.getElementById("bkTeacher").textContent = t.name;
             document.getElementById("bkRoom").textContent =
                 (t.room ? "Room " + t.room : "N/A") +
-                "  |  " + t.block + " Block";
+                "  |  Block " + t.block;
             nameInput.value = "";
             document.getElementById("errorText").style.display = "none";
             const bookBtn = document.getElementById("btnBook");
@@ -410,9 +398,6 @@
                 return;
             }
 
-            // We use "no-cors" here, which basically means fire-and-forget — the browser won't
-            // let us read Google's response, but the request still goes through and the email
-            // still gets sent, so that's fine for our purposes
             fetch(SCRIPT_URL, {
                 method: "POST",
                 mode: "no-cors",
@@ -420,7 +405,7 @@
                     student: student,
                     teacher: current.name,
                     room: current.room || "Not listed",
-                    block: current.block + " Block",
+                    block: "Block " + current.block,
                     booked: new Date().toLocaleString()
                 })
             })
@@ -428,7 +413,7 @@
                 document.getElementById("confirmText").textContent =
                     student + " is meeting " + current.name +
                     (current.room ? " in Room " + current.room : "") +
-                    " during " + current.block + " Block";
+                    " during Block " + current.block;
                 document.getElementById("bookingView").style.display = "none";
                 document.getElementById("confirmView").style.display = "block";
                 setTimeout(function () {
@@ -455,21 +440,6 @@
         setInterval(function () {
             if (overlay.style.display !== "block") loadTeachers();
         }, 300000);
-
-        // Lets someone force an immediate refresh instead of waiting for the 5-minute timer
-        // Heads up: there's no element with id="btnRefresh" in the HTML below yet (and the
-        // .refreshButton CSS rule has nothing to style either), so this line will error out
-        // until that button gets added to the page.
-        document.getElementById("btnRefresh").onclick = function () {
-            const btn = document.getElementById("btnRefresh");
-            btn.disabled = true;
-            btn.textContent = "...";
-            loadTeachers();
-            setTimeout(function () {
-                btn.disabled = false;
-                btn.textContent = "REFRESH";
-            }, 1500);
-        };
     });
     </script>
 </head>
@@ -478,11 +448,11 @@
     <!-- These two grids start out empty — the script fills them in with teacher buttons once
          the sheet data has loaded -->
     <div class="teacherArea">
-        <h2 class="blockHeader">1st Block</h2>
+        <h2 class="blockHeader">Block 1</h2>
         <div class="teacherGrid" id="gridA"></div>
         <p class="noneFound" id="noneA" style="display:none;">No teachers found.</p>
 
-        <h2 class="blockHeader">2nd Block</h2>
+        <h2 class="blockHeader">Block 2</h2>
         <div class="teacherGrid" id="gridB"></div>
         <p class="noneFound" id="noneB" style="display:none;">No teachers found.</p>
     </div>

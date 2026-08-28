@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Homepage</title>
+    <link rel="stylesheet" href="others/styling.css">
+    <script src="others/logic.js" defer></script>
+</head>
+<body>
+    <img src="pictures/title.png" style="height: 45vh; width: auto; left: 50vw; top: 19vh;" alt="Title Logo"> <!--lmhs roar board logo image -->
+
+    <div class="homepageOptions"> <!-- buttons for staff, students, and visitors -->
+        <button onclick="window.location.href='html/staff.html'"style=" top: 62vh; left: 20vw; height: 48vh; width: 48vh;">
+            <img src="pictures/staffLogo.png" style="height: 48vh; width: auto; justify-content: center;" alt="Staff Logo">
+        </button>
+        <button onclick="window.location.href='html/student.html'" style="top: 62vh; left: 50vw; height: 48vh; width: 48vh;">
+            <img src="pictures/studentsLogo.png" style="height: 50vh; width: auto; justify-content: center;" alt="Student Logo">
+        </button>
+        <button onclick="window.location.href='html/parents&visitors.html'" style="top: 62vh; left: 80vw; height: 48vh; width: 48vh;">
+            <img src="pictures/visitorsLogo.png" style="height: 48vh; width: auto; justify-content: center;" alt="Visitors Logo">
+        </button>
+    </div>
+
+    <div class="buttonText"> <!-- text/labels for the buttons -->
+        <h2 style="font-size: 5vh; top: 85.5vh; left: 20vw;">STAFF</h2>
+        <h2 style="font-size: 5vh; top: 85.5vh; left: 50vw;">STUDENTS</h2>
+        <h2 style="font-size: 5vh; top: 85.5vh; left: 80vw;">VISITORS</h2>
+    </div>
+
+    <div class="statusBar"></div> <!-- status bar at the bottom of the page -->
+    <div class="statusBarInfo"> 
+        <p style="transform: translate(0%, -50%);  left: 1vw;"><time id="date-display"></time></p> <!-- displays the date by pulling from logic.js, which grabs the date-->
+        <p style="left: 93.5vw; white-space: nowrap;">Color Day: <span id="color-day-display"></span></p> <!-- displays the color day by pulling from logic.js, which grabs from a sheet and calculates the color day-->
+        <p style="left: 50vw;">Homepage</p>
+    </div>
+
+</body>
+</html>
+

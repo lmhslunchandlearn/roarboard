@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Activities</title>
+<!-- Shared kiosk script: powers the status bar's date/color-day display -->
+<script src="../others/logic.js" defer></script>
+<style>
+  /* global color variables */
+  :root {
+    --gold: #f5c842;
+    --blue: #1b4f9e;
+    --panel: #f0f0f0;
+    --ink: #111111;
+  }
+
+  /*  Global reset: strip default margins/padding, use border-box sizing everywhere  */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  /* Page background/text, and choose kiosk gestures (no text select, no zoom flash, no scroll bounce) */
+  body {
+    background: var(--blue);
+    font-family: Arial, sans-serif;
+    color: var(--ink);
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  /* Page layout: full-height, column holding the filter bar on top, club grid below */
+  .board {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 7vh;          /* raises the bottom edge of the club grid */
+  }
+
+  /* Season filter bar */
+  .filters {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 1.4vh 2vw 0.5vh;
+  }
+  .filter-btn { /* config of one season filter button */
+    background: transparent;
+    color: var(--gold);
+    border: 3px solid var(--gold);
+    border-radius: 999px;
+    padding: 10px 26px;
+    min-height: 52px;
+    font-family: inherit;
+    font-size: clamp(15px, 1.4vw, 22px);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+  }
+  .filter-btn.active { /* the currently selected season filter */
+    background: var(--gold);
+    color: var(--ink);
+  }
+  .filter-btn:active { filter: brightness(0.88); }
+
+  /* Scrollable club grid: fills remaining vertical space below the filter bar */
+  .track-wrap {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: stretch;
+  }
+
+  /* 4-column card grid; scrolls vertically, scrollbar hidden for a clean kiosk look */
+  .track {
+    display: grid;
+    grid-template-columns: repeat(4, clamp(150px, 16vw, 290px));   /* 4 clubs per row */
+    justify-content: center;     /* grid sits centered with open space on the sides */
+    align-content: start;
+    gap: 6vh 3.5vw;             /* row gap > column gap */
+    padding: 1.8vh 7vw 1.5vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;        /* hide the scrollbar */
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;          /* swipes always pan the board vertically */
+    width: 100%;
+  }
+  .track::-webkit-scrollbar { display: none; }
+
+  /* ===== Club card ===== */
+  .card {
+    display: flex;
+    flex-direction: column;
+    gap: 1vh;
+    cursor: pointer;
+  }
+
+  /* Gold pill at the top of a card showing the club name */
+  .card-title {
+    background: var(--gold);
+    border-radius: 8px;
+    padding: 8px 14px;
+    text-align: center;
+    font-size: clamp(13px, 1.2vw, 21px);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Gold panel below the title showing sponsor name + "tap for details" hint */
+  .card-body {
+    background: var(--gold);
+    border-radius: 20px;
+    padding: 12px 16px;
+    flex: 1;
+    min-height: 9vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    text-align: center;
+    overflow: hidden;
+  }
+  .card-sponsor { /* sponsor name line inside the card body */
+    font-size: clamp(13px, 1.2vw, 21px);
+    font-weight: 700;
+    line-height: 1.25;
+  }
+  .card-hint { /* "TAP FOR DETAILS" */
+    margin-top: 6px;
+    font-size: clamp(10px, 0.8vw, 14px);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    opacity: 0.6;
+  }
+
+  /*  Full-screen club detail overlay  */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 17, 17, 0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 4vh 4vw;
+    z-index: 50;
+  }
+  .overlay.open { display: flex; }
+
+  /* The centered card holding a club's full details */
+  .detail {
+    background: var(--blue);
+    border: 5px solid var(--gold);
+    border-radius: 34px;
+    width: min(1100px, 100%);
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  /* Gold header strip showing the club name */
+  .detail-title {
+    background: var(--gold);
+    padding: 18px 26px;
+    text-align: center;
+    font-size: clamp(20px, 2vw, 34px);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  /* Scrollable body holding the full club description */
+  .detail-scroll {
+    overflow-y: auto;
+    touch-action: pan-y;           /* finger scroll description */
+    -webkit-overflow-scrolling: touch;
+    padding: 3vh 3vw;
+    color: #ffffff;
+    font-size: clamp(15px, 1.3vw, 23px);
+    line-height: 1.5; 
+  }
+  /* Footer line showing sponsor, email, and time*/
+  .detail-meta {
+    padding: 1.5vh 3vw;
+    color: var(--gold);
+    font-weight: 700;
+    font-size: clamp(14px, 1.2vw, 21px);
+    border-top: 2px solid rgba(245, 200, 66, 0.4);
+  }
+  /* Row holding the CLOSE button at the bottom */
+  .detail-actions {
+    display: flex;
+    justify-content: center;
+    padding: 1.5vh 0 2.5vh;
+  }
+
+  /*  Search overlay: Type box, results, on-screen keyboard  */
+  .search-panel { width: min(1100px, 100%); }
+
+  /* Type box */
+  .search-query {
+    margin: 2vh 3vw 0;
+    background: var(--panel);
+    border-radius: 12px;
+    min-height: 58px;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    font-size: clamp(20px, 2vw, 32px);
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  /* Scrollable wrap of matching club result options */
+  .search-results {
+    margin: 1.5vh 3vw;
+    min-height: 8vh;
+    max-height: 24vh;
+    overflow-y: auto;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 12px;
+  }
+  /* One tappable "club name" option */
+  .result-btn {
+    background: var(--gold);
+    color: var(--ink);
+    border: none;
+    border-radius: 999px;
+    padding: 12px 22px;
+    min-height: 50px;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: clamp(14px, 1.2vw, 20px);
+    cursor: pointer;
+  }
+  .result-btn:active { filter: brightness(0.85); }
+  /* "No clubs match ..." when a search has zero results */
+  .result-none {
+    color: #ffffff;
+    font-weight: 600;
+    font-size: clamp(15px, 1.3vw, 22px);
+  }
+
+  /* On-screen keyboard used inside the search */
+  .keyboard {
+    padding: 0 3vw;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .kb-row {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+  }
+  /* single keys (SPACE, DELETE, CLEAR) */
+  .key {
+    flex: 0 0 auto;
+    min-width: clamp(44px, 5.5vw, 76px);
+    height: clamp(48px, 6vh, 68px);
+    background: var(--gold);
+    color: var(--ink);
+    border: none;
+    border-radius: 10px;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: clamp(18px, 1.6vw, 28px);
+    cursor: pointer;
+  }
+  .key:active { filter: brightness(0.85); }
+  .key.wide { min-width: clamp(120px, 15vw, 240px); }
+
+  /*  Gold buttons */
+  .pill-btn {
+    background: var(--gold);
+    color: var(--ink);
+    border: none;
+    border-radius: 999px;
+    padding: 14px 44px;
+    min-width: 140px;
+    min-height: 56px;
+    font-family: inherit;
+    font-size: clamp(20px, 2.2vw, 34px);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+  }
+  .pill-btn:active { filter: brightness(0.88); transform: scale(0.97); }
+  .pill-btn:focus-visible { outline: 3px solid #ffffff; outline-offset: 3px; }
+
+
+  /*  "Loading…" / "No clubs" placeholder */
+  .empty {
+    grid-column: 1 / -1;
+    margin: auto;
+    background: var(--gold);
+    border-radius: 34px;
+    padding: 26px 40px;
+    font-size: clamp(16px, 1.6vw, 26px);
+    font-weight: 600;
+    text-align: center;
+  }
+  /*  Bottom status bar (gold background spanning the screen width)  */
+  .statusBar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100vw;
+    height: 5vh;
+    background-color: #F5C842;
+}
+/* Text rows on top of the status bar: date (left), page title (center), color day (right) */
+.statusBarInfo p{
+    font-size: 2.5vh;
+    margin: 0;
+    padding: 0;
+    color:black;
+    text-align: center;
+    transform: translate(-50%, -50%);
+    position: absolute;
+    bottom: -.5vh;
+}
+/* gold "BACK" button anchored over the bottom-left of the status bar */
+.backButton button{
+    position: absolute;
+    bottom: 3vh;
+    left: 6vw;
+    transform: translate(-50%, -50%);
+    height: 8vh;
+    width: 10vw;
+    font-size: 5vh;
+}
+</style>
+</head>
+<body>
+
+<!-- Main board: filter/search bar on top, scrollable club grid below (both filled in by the script) -->
+<div class="board">
+  <div class="filters" id="filters"></div>
+
+  <div class="track-wrap">
+    <div class="track" id="track" aria-label="Clubs, scrolls vertically">
+      <div class="empty">Loading clubs…</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Full club detail overlay -->
+<div class="overlay" id="overlay">
+  <div class="detail">
+    <div class="detail-title" id="detailTitle"></div>
+    <div class="detail-scroll" id="detailDesc"></div>
+    <div class="detail-meta" id="detailMeta"></div>
+    <div class="detail-actions">
+      <button class="pill-btn" id="closeBtn" type="button">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<!-- Club search overlay with on-screen keyboard -->
+<div class="overlay" id="searchOverlay">
+  <div class="detail search-panel">
+    <div class="detail-title">SEARCH ACTIVITIES</div>
+    <div class="search-query" id="searchQuery">&nbsp;</div>
+    <div class="search-results" id="searchResults"></div>
+    <div class="keyboard" id="keyboard"></div>
+    <div class="detail-actions">
+      <button class="pill-btn" id="searchCloseBtn" type="button">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+    <!-- Bottom status bar: current date (left), page title (center), and color day (right) -->
+    <!-- date-display / color-day-display are populated by the shared ../../others/logic.js script -->
+    <div class="statusBar"></div>
+    <div class="statusBarInfo">
+        <p style="font-family: arial, sans-serif; font-weight: 600; overflow: hidden; transform: translate(0%, -50%);  left: 1vw;"><time id="date-display"></time></p>
+        <p style="font-family: arial, sans-serif; font-weight: 600; overflow: hidden; left: 93.5vw; white-space: nowrap;">Color Day: <span id="color-day-display"></span></p>
+        <p style="font-family: arial, sans-serif; font-weight: 600; overflow: hidden; left: 50vw;">Activities</p>
+    </div>
+
+    <!-- Back button: returns to the student home page -->
+    <div class="backButton">
+        <button style="border-radius: 5vh; border: none; cursor: pointer; background-color: #F5C842; text-align: center; overflow: hidden; font-weight: 600;" onclick="history.back()">BACK</button>
+    </div>
+
+<script>
+/* =====================================================================
+   CONFIG
+===================================================================== */
+var APPS_SCRIPT_URL =
+  'https://script.google.com/macros/s/AKfycbwZMMnR1QJmOSv0YnZcB5mFLWZbOi0Ma4Uh4CzcrkukyE74aBQPpQIASGnrcNYGQTXXRA/exec'; //MUST BE UPDATED EACH TIME APP SCRIPT IS CHANGED
+var REFRESH_EVERY_MS = 5 * 60 * 1000;  // re-pull the Sheet every 5 minutes. look at first number for number of mins
+
+/* Filter categories, in display order. `match` is compared to the
+   sheet's "Active Time Frame" column (case-insensitive). */
+var FILTERS = [
+  { label: 'ALL',       match: null },
+  { label: 'FALL',      match: 'FALL' },
+  { label: 'WINTER',    match: 'WINTER' },
+  { label: 'SPRING',    match: 'SPRING' }
+];
+var currentFilter = 0;
+var allClubs = [];
+
+/* =====================================================================
+   FILTER BAR
+===================================================================== */
+var filtersEl = document.getElementById('filters');
+FILTERS.forEach(function (f, i) {
+  var btn = document.createElement('button');
+  btn.className = 'filter-btn' + (i === currentFilter ? ' active' : '');
+  btn.type = 'button';
+  btn.textContent = f.label;
+  btn.addEventListener('click', function () {
+    currentFilter = i;
+    var btns = filtersEl.querySelectorAll('.filter-btn');
+    for (var b = 0; b < btns.length; b++) btns[b].classList.remove('active');
+    btn.classList.add('active');
+    renderBoard();
+  });
+  filtersEl.appendChild(btn);
+});
+
+// Action buttons live in the same top bar as the filters
+var searchTabBtn = document.createElement('button');
+searchTabBtn.className = 'filter-btn';
+searchTabBtn.type = 'button';
+searchTabBtn.id = 'searchBtn';
+searchTabBtn.textContent = 'SEARCH';
+filtersEl.appendChild(searchTabBtn);
+
+function filteredClubs() {
+  var f = FILTERS[currentFilter];
+  if (!f.match) return allClubs;
+  return allClubs.filter(function (c) {
+    return (c.timeFrame || '').toUpperCase() === f.match;
+  });
+}
+
+/* =====================================================================
+   SEARCH — on-screen keyboard, live results, tap a result for details
+===================================================================== */
+var searchOverlay = document.getElementById('searchOverlay');
+var searchOpen = false;
+var searchQuery = '';
+
+function openSearch() {
+  searchQuery = '';
+  updateSearch();
+  searchOverlay.classList.add('open');
+  searchOpen = true;    // freezes auto-scroll while searching
+}
+function closeSearch() {
+  searchOverlay.classList.remove('open');
+  searchOpen = false;
+}
+document.getElementById('searchBtn').addEventListener('click', openSearch);
+document.getElementById('searchCloseBtn').addEventListener('click', closeSearch);
+searchOverlay.addEventListener('click', function (e) {
+  if (e.target === searchOverlay) closeSearch();
+});
+
+// Build the on-screen keyboard
+(function buildKeyboard() {
+  var kb = document.getElementById('keyboard');
+  var rows = [
+    ['Q','W','E','R','T','Y','U','I','O','P'],
+    ['A','S','D','F','G','H','J','K','L'],
+    ['Z','X','C','V','B','N','M']
+  ];
+  rows.forEach(function (row) {
+    var r = document.createElement('div');
+    r.className = 'kb-row';
+    row.forEach(function (ch) {
+      r.appendChild(makeKey(ch, false, function () {
+        searchQuery += ch;
+        updateSearch();
+      }));
+    });
+    kb.appendChild(r);
+  });
+  var last = document.createElement('div');
+  last.className = 'kb-row';
+  last.appendChild(makeKey('SPACE', true, function () {
+    searchQuery += ' ';
+    updateSearch();
+  }));
+  last.appendChild(makeKey('\u232B DELETE', true, function () {
+    searchQuery = searchQuery.slice(0, -1);
+    updateSearch();
+  }));
+  last.appendChild(makeKey('CLEAR', true, function () {
+    searchQuery = '';
+    updateSearch();
+  }));
+  kb.appendChild(last);
+
+  function makeKey(label, wide, onTap) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'key' + (wide ? ' wide' : '');
+    b.textContent = label;
+    b.addEventListener('click', onTap);
+    return b;
+  }
+})();
+
+function updateSearch() {
+  var qEl = document.getElementById('searchQuery');
+  qEl.textContent = searchQuery || '\u00A0';   // non-breaking space keeps the box height
+
+  var res = document.getElementById('searchResults');
+  res.innerHTML = '';
+
+  var q = searchQuery.trim().toUpperCase();
+  var matches = allClubs.filter(function (c) {
+    return !q || c.name.toUpperCase().indexOf(q) !== -1;
+  });
+
+  if (!matches.length) {
+    var none = document.createElement('div');
+    none.className = 'result-none';
+    none.textContent = 'No clubs match \u201C' + searchQuery.trim() + '\u201D';
+    res.appendChild(none);
+    return;
+  }
+
+  matches.forEach(function (club) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'result-btn';
+    b.textContent = club.name;
+    b.addEventListener('click', function () {
+      closeSearch();
+      openDetail(club);
+    });
+    res.appendChild(b);
+  });
+}
+
+/* =====================================================================
+   CLUB DETAIL OVERLAY
+===================================================================== */
+var overlay = document.getElementById('overlay');
+var overlayOpen = false;
+
+function openDetail(club) {
+  document.getElementById('detailTitle').textContent = club.name;
+  document.getElementById('detailDesc').textContent =
+    club.description || 'N/A';
+  var meta = [];
+  meta.push('Sponsor: ' + (club.sponsor || 'N/A'));
+  meta.push(club.email || 'N/A');
+  if (club.timeFrame) meta.push(club.timeFrame);
+  document.getElementById('detailMeta').textContent = meta.join('   •   ');
+  overlay.classList.add('open');
+  overlayOpen = true;   // freezes auto-scroll while reading
+}
+function closeDetail() {
+  overlay.classList.remove('open');
+  overlayOpen = false;
+}
+document.getElementById('closeBtn').addEventListener('click', closeDetail);
+overlay.addEventListener('click', function (e) {
+  if (e.target === overlay) closeDetail();   // tap outside the box closes it
+});
+
+/* =====================================================================
+   DATA: pull from Apps Script; fall back to demo data when previewing
+===================================================================== */
+var DEMO_DATA = {
+  clubs: [
+    { name: 'ERROR', description: 'ERROR', sponsor: 'Sponsor Name', email: 'email@lmtsd.org', timeFrame: 'All Year' },
+  ]
+};
+
+function loadData() {
+  if (typeof google !== 'undefined' && google.script && google.script.run) {
+    google.script.run
+      .withSuccessHandler(onData)
+      .withFailureHandler(function (err) {
+        showEmpty('Could not load clubs. ' + (err && err.message ? err.message : ''));
+      })
+      .getBoardData();
+  } else if (APPS_SCRIPT_URL) {
+    fetch(APPS_SCRIPT_URL + '?action=data&t=' + Date.now())
+      .then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(onData)
+      .catch(function (err) {
+        showEmpty('Could not load clubs. ' + err.message);
+      });
+  } else {
+    onData(DEMO_DATA);
+  }
+}
+
+function onData(data) {
+  allClubs = (data && data.clubs) || [];
+  renderBoard();
+}
+
+function showEmpty(msg) {
+  var track = document.getElementById('track');
+  track.innerHTML = '';
+  var div = document.createElement('div');
+  div.className = 'empty';
+  div.textContent = msg;
+  track.appendChild(div);
+}
+
+/* =====================================================================
+   RENDER
+===================================================================== */
+function buildCard(club) {
+  var card = document.createElement('div');
+  card.className = 'card';
+
+  var t = document.createElement('div');
+  t.className = 'card-title';
+  t.textContent = club.name;
+  card.appendChild(t);
+
+  var body = document.createElement('div');
+  body.className = 'card-body';
+
+  var sponsor = document.createElement('div');
+  sponsor.className = 'card-sponsor';
+  sponsor.textContent = club.sponsor || 'N/A';
+  body.appendChild(sponsor);
+
+  var hint = document.createElement('div');
+  hint.className = 'card-hint';
+  hint.textContent = 'TAP FOR DETAILS';
+  body.appendChild(hint);
+
+  card.appendChild(body);
+  card.addEventListener('click', function () {
+    if (!suppressClick) openDetail(club);
+  });
+  return card;
+}
+
+function renderBoard() {
+  var track = document.getElementById('track');
+  track.innerHTML = '';
+  track.scrollTop = 0;
+
+  var items = filteredClubs();
+  if (!items.length) {
+    showEmpty('No clubs in this category.');
+    return;
+  }
+
+  items.forEach(function (club) {
+    track.appendChild(buildCard(club));
+  });
+}
+
+/* =====================================================================
+   MANUAL SCROLLING — no auto-scroll, no looping. Touch swipe and
+   mouse wheel work natively; this adds mouse click-and-drag.
+===================================================================== */
+var suppressClick = false;   // true right after a mouse drag, so it doesn't count as a card tap
+
+(function initMouseDrag() {
+  var track = document.getElementById('track');
+  var dragging = false, dragStartY = 0, dragStartScroll = 0, dragMoved = 0;
+
+  track.addEventListener('pointerdown', function (e) {
+    if (e.pointerType !== 'mouse') return;
+    dragging = true;
+    dragMoved = 0;
+    dragStartY = e.clientY;
+    dragStartScroll = track.scrollTop;
+  });
+  window.addEventListener('pointermove', function (e) {
+    if (!dragging) return;
+    var dy = e.clientY - dragStartY;
+    dragMoved = Math.max(dragMoved, Math.abs(dy));
+    track.scrollTop = dragStartScroll - dy;
+  });
+  window.addEventListener('pointerup', function () {
+    if (dragging && dragMoved > 8) {
+      suppressClick = true;                  // that drag shouldn't open a card
+      setTimeout(function () { suppressClick = false; }, 50);
+    }
+    dragging = false;
+  });
+})();
+
+loadData(); // initial load
+setInterval(loadData, REFRESH_EVERY_MS); // refreshes every so often
+</script>
+</body>
+</html>

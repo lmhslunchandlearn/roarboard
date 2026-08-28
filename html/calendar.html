@@ -1,0 +1,26 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+    <title>Calendar</title>
+    <link rel="stylesheet" href="../others/styling.css">
+    <script src="../others/logic.js" defer></script>
+</head>
+<body>
+    <!-- embedding google calendar derived from lmhs website caledar (export lmhs website calendar into google calendar then iframe)-->
+    <iframe src="https://calendar.google.com/calendar/embed?src=c_34ec4e5fc1798304eca4f6a091a2b7ef9598546010f5b151426e59301476341a%40group.calendar.google.com&ctz=America%2FNew_York" 
+        style="pointer-events: none; border: 0; width: 70vw; height: 113vh; position: absolute; left: 50vw; top: 49vh; transform: translate(-50%, -50%);">
+    </iframe> 
+
+    <div class="statusBar"></div> <!-- status bar at bottom of the page -->
+    <div class="statusBarInfo"> 
+        <p style="transform: translate(0%, -50%);  left: 1vw;"><time id="date-display"></time></p>
+        <p style="left: 93.5vw; white-space: nowrap;">Color Day: <span id="color-day-display"></span></p>
+        <p style="left: 50vw;">Calendar</p>
+    </div>
+
+    <div class="backButton"> <!-- go back to previous page -->
+        <button onclick="history.back()">BACK</button>
+    </div>
+</body>
+</html>

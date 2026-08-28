@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+  <title>Announcements</title>
+  <script src="../others/logic.js" defer></script>
+  <style> /* styling for this page only */
+    :root { /* global color palette (like css variables) */
+      --gold: #f5c842;
+      --blue: #1b4f9e;
+      --panel: #f0f0f0;
+      --ink: #111111;
+    }
+
+    * { /* reset defaults and spacing for all elements */
+      margin: 0; 
+      padding: 0; 
+      box-sizing: border-box; 
+    }
+
+    html, body { /* force html and body elements to take all available space vertically */
+      height: 100%; 
+    }
+
+    body { /* styling for the body elements */
+      background: var(--blue); /* make page bg blue */
+      font-family: Arial, sans-serif;
+      color: var(--ink); /* make font color black */
+      overflow: hidden;
+      user-select: none; /* dont let users select the body text */
+    }
+
+    .board { /* board of announcements (basically big box with all the announcements in it) */
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 6vh;  /* keep cards from touching the status bar */
+    }
+
+    .track-wrap { /* the track's container, which holds the track and the side arrows */
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      position: relative;   /* anchor for the side arrows */
+    }
+
+    .track {
+      display: flex;
+      gap: 3.5vw;
+      padding: 4vh 3vw 2vh;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+      touch-action: pan-x;
+      width: 100%;
+      scroll-behavior: smooth;
+    }
+
+    .track::-webkit-scrollbar { /* hide the scrollbar in webkit browsers */
+      display: none; 
+    }
+
+    .card { /* each announcement card/section */
+      flex: 0 0 clamp(280px, 29vw, 560px);
+      display: flex;
+      flex-direction: column;
+      gap: 4vh;
+    }
+
+    .card-title { /* each announcement card/section's title */
+      background: var(--gold);
+      border-radius: 8px;
+      padding: 12px 18px;
+      text-align: center;
+      font-size: clamp(18px, 1.8vw, 30px);
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-text { /* each announcement card/section's main body text */
+      background: var(--gold);
+      border-radius: 34px;
+      padding: 28px 26px;
+      min-height: 22vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: clamp(16px, 1.5vw, 26px);
+      font-weight: 600;
+      line-height: 1.35;
+    }
+
+    .card-image { /* each announcement card/section's image box if it has one */
+      background: var(--panel);
+      border: 1px solid #b9c2d0;
+      min-height: 22vh;
+      max-height: 30vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border-radius: 10px;
+    }
+    .card-image img { /* each announcement card/section's image if it has one */
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    /* makes sure card text and image flip every time for some aesthetic variety */
+    .card.flip .card-text  { order: 2; }
+    .card.flip .card-image { order: 1; }
+
+    .nav-arrow { /* the left/right arrows for scrolling the board */
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 5;
+      width: clamp(56px, 6vw, 96px);
+      height: clamp(56px, 6vw, 96px);
+      border-radius: 50%;
+      background: var(--gold);
+      color: var(--ink);
+      border: 3px solid var(--blue);
+      font-size: clamp(30px, 3.4vw, 54px);
+      font-weight: 900;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+    }
+    .nav-arrow.left  { left: 1.2vw; } /* sets positions of arrow */
+    .nav-arrow.right { right: 1.2vw; } /* sets positions of arrow */
+
+    /* change button look when pressed, focused, or disabled */
+    .nav-arrow:active { filter: brightness(0.88); transform: translateY(-50%) scale(0.95); }
+    .nav-arrow:focus-visible { outline: 3px solid #ffffff; outline-offset: 3px; }
+    .nav-arrow:disabled { opacity: 0.3; cursor: default; box-shadow: none; }
+
+    .empty { /* message shown when there are no announcements to show or announcement is loading*/
+      margin: auto;
+      background: var(--gold);
+      border-radius: 34px;
+      padding: 26px 40px;
+      font-size: clamp(16px, 1.6vw, 26px);
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .statusBar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100vw;
+      height: 5vh;
+      background-color: #F5C842;
+    }
+    .statusBarInfo p{
+        font-size: 2.5vh;
+        margin: 0;
+        padding: 0;
+        color:black;
+        text-align: center;
+        transform: translate(-50%, -50%);
+        position: absolute;
+        bottom: -.5vh;
+        font-family: arial, sans-serif;
+        font-weight: 600;
+        overflow: hidden;
+    }
+    .backButton button{
+      font-weight: 600; 
+      border: none; 
+      position: absolute; 
+      bottom: 3vh; 
+      left: 6vw; 
+      transform: translate(-50%, -50%); 
+      height: 8vh; 
+      width: 10vw; 
+      font-size: 5vh; 
+      border-radius: 5vh; 
+      background-color: #F5C842;
+    }
+  </style>
+</head>
+<body>
+
+<div class="board"> <!-- basically big box with all the announcements in it -->
+  <div class="track-wrap">
+    <button class="nav-arrow left" id="arrowLeft" type="button">&#10094;</button> <!-- left navigation arrow to scroll to previous announcements -->
+    <div class="track" id="track"> <!-- the track that holds all the announcements, later manipulated to have the cards -->
+      <div class="empty" id="emptyMsg">Loading announcements…</div> <!-- message shown when there are no announcements to show or announcement is loading-->
+    </div>
+    <button class="nav-arrow right" id="arrowRight" type="button">&#10095;</button> <!-- right navigation arrow to scroll to next announcements -->
+  </div>
+</div>
+
+<div class="backButton">
+        <button onclick="history.back()">BACK</button>
+    </div>
+
+    <div class="statusBar"></div>
+    <div class="statusBarInfo">
+        <p style="transform: translate(0%, -50%);  left: 1vw;"><time id="date-display"></time></p>
+        <p style="left: 93.5vw; white-space: nowrap;">Color Day: <span id="color-day-display"></span></p>
+        <p style="left: 50vw;">Announcements</p>
+    </div>
+
+<script> // lots of explaining is done :)
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxf1GL-e0k1syvj0ASwyQMwpxCyNNNcP6RT8bFwGk7hk0y9nUKZhT0BfU0VYOtL4x5T/exec'; // MUST BE UPDATED EACH TIME APPS SCRIPT IS UPDATED. link to apps script to pull data
+var REFRESH_EVERY_MS = 5 * 60 * 1000;  // time between refreshes of the board data (5 minutes currently), change first number to change # of mins
+
+// storing different html elements in variables for later use
+var track = document.getElementById('track');
+var arrowLeft = document.getElementById('arrowLeft');
+var arrowRight = document.getElementById('arrowRight');
+
+// finds how far to scroll each time arrow is pressed 
+function cardStep() {
+  var card = track.querySelector('.card'); // finds the first card in the track, if there is one
+  if (!card) return track.clientWidth * 0.8; // if no cards, scroll 80% of the track width
+  var styles = getComputedStyle(track); // finds styles of the track
+  var gap = parseFloat(styles.columnGap || styles.gap) || 0; // gets gaps between cards, if there are any
+  return card.getBoundingClientRect().width + gap; // returns the cards with + the gap between cards, which is how far to scroll each time
+}
+
+arrowLeft.addEventListener('click', function () { // wait for click on left arrow, and when click, scroll left by the width of a card + the gap between cards to the left
+  track.scrollBy({ left: -cardStep(), behavior: 'smooth' });
+});
+arrowRight.addEventListener('click', function () { // wait for click on right arrow, and when click, scroll right by the width of a card + the gap between cards to the right
+  track.scrollBy({ left: cardStep(), behavior: 'smooth' });
+});
+
+// figures out what each arrow should look like and if it should be operational (if it should be visible, disabled, etc.) based on how far the user has scrolled
+function updateArrows() {
+  var maxScroll = track.scrollWidth - track.clientWidth;
+  var overflows = maxScroll > 4; // if max scroll pixels is more than 4, then the track overflows and the arrows should be visible
+  arrowLeft.style.display  = overflows ? 'flex' : 'none'; // if left overflows, show left arrow, otherwise hide it
+  arrowRight.style.display = overflows ? 'flex' : 'none'; // if right overflows, show right arrow, otherwise hide it
+  arrowLeft.disabled  = track.scrollLeft <= 1; // if the user has scrolled all the way to the left, disable the left arrow, otherwise enable it
+  arrowRight.disabled = track.scrollLeft >= maxScroll - 1; // if the user has scrolled all the way to the right, disable the right arrow, otherwise enable it
+}
+track.addEventListener('scroll', updateArrows, { passive: true }); // run the updateArrows function when the user scrolls the track, so the arrows can be updated to reflect the new scroll position
+window.addEventListener('resize', updateArrows); // run updateArrows whenever user changes window size 
+
+var DEMO_DATA = { // fallback data to show if the board can't load from the apps script
+  announcements: [
+    { title: 'ERROR', text: 'The announcement page is currently unavailable.', image: '' },
+    { title: 'ERROR', text: 'The announcement page is currently unavailable.', image: '' },
+    { title: 'ERROR', text: 'The announcement page is currently unavailable.', image: '' },
+    { title: 'ERROR', text: 'The announcement page is currently unavailable.', image: '' }
+  ]
+};
+
+function loadData() { // grabs announcementa data and loads it after processing the data
+  if (typeof google !== 'undefined' && google.script && google.script.run) { //checks apps script 
+    google.script.run
+      .withSuccessHandler(renderBoard) // if successful, run renderBoard function to display the announcements
+      .withFailureHandler(function (err) { // if fails, then runs showEmpty function to display error message
+        showEmpty('Could not load announcements. ' + (err && err.message ? err.message : ''));
+      })
+      .getBoardData(); // runs this function in the apps script itself
+  } else if (APPS_SCRIPT_URL) { // if page is running outside of apps script
+    fetch(APPS_SCRIPT_URL + '?action=data&t=' + Date.now()) // get data from the apps script
+      .then(function (res) { // run this function after fetch
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json(); // returns the needed announcement data in json 
+      })
+      .then(renderBoard) // after done send to renderBoard function to display the announcements
+      .catch(function (err) { // catches any errors and runs showEmpty function to display error message
+        showEmpty('Could not load announcements. ' + err.message);
+      });
+  } else { //show backup data if everything fails
+    renderBoard(DEMO_DATA);   // standalone preview
+  }
+}
+
+function showEmpty(msg) { //shows an error message if needed
+  var track = document.getElementById('track');
+  track.innerHTML = ''; // clears track
+  var div = document.createElement('div');
+  div.className = 'empty';
+  div.textContent = msg;
+  track.appendChild(div);
+  updateArrows();
+}
+
+// builds each individual announcement card/section based on the data from the apps script
+function buildCard(item, index) { // item = announcement content, title, image. index = the order of the announcement in the list
+  var card = document.createElement('div');
+  card.className = 'card' + (index % 2 === 1 ? ' flip' : ''); // decides whether to flip the card text and image based on if the index is odd or even
+
+  if (item.title) { // adds title to the card
+    var t = document.createElement('div');
+    t.className = 'card-title';
+    t.textContent = item.title;
+    card.appendChild(t);
+  }
+  if (item.text) { // adds text to the card
+    var tx = document.createElement('div');
+    tx.className = 'card-text';
+    tx.textContent = item.text;
+    card.appendChild(tx);
+  }
+  if (item.image) { // adds image to the card if there is one, and removes the card if the image fails to load
+    var wrap = document.createElement('div');
+    wrap.className = 'card-image';
+    var img = document.createElement('img');
+    img.src = item.image;
+    img.alt = item.title || 'Announcement image';
+    img.addEventListener('error', function () { wrap.remove(); }); // remove image if failure happens
+    wrap.appendChild(img);
+    card.appendChild(wrap);
+  }
+  return card;
+}
+
+function renderBoard(data) { // displays all of the announcements
+  var track = document.getElementById('track');
+  track.innerHTML = ''; // delete old announcements
+
+  var items = (data.announcements || []); 
+  if (!items.length) { // check if there are any announcements 
+    showEmpty('No announcements');
+    return;
+  }
+
+  items.forEach(function (item, i) { // add each card to the announcement track 
+    track.appendChild(buildCard(item, i));
+  });
+
+  track.scrollLeft = 0;
+  updateArrows();
+}
+
+loadData(); // runs the announcement loading
+setInterval(loadData, REFRESH_EVERY_MS); // runs it every 5 minutes to refresh the announcements
+</script>
+</body>
+</html>

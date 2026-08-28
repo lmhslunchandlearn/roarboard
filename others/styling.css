@@ -1,0 +1,74 @@
+/* styling sheet for certain elements
+must be linked to all html files 
+but may not be applied to some pages for ease 
+of programming */
+
+body {
+    background-color: #1B4F9E;
+    color: #F5C842;
+    font-family: arial, sans-serif;
+    font-weight: 600;
+    overflow: hidden;
+    user-select: none; /* dont let users select the body text */
+}
+button {
+    border-radius: 5vh; 
+    border: none;
+    cursor: pointer;
+    background-color: #F5C842;
+    text-align: center;
+    overflow: hidden;
+    font-weight: 600;
+}
+img {
+    transform: translate(-50%, -50%);
+    position: absolute;
+    overflow: hidden;
+    border-radius: 1vh; 
+    -webkit-user-drag: none;
+    pointer-events: none; 
+}
+.statusBar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100vw;
+    height: 5vh;
+    background-color: #F5C842;
+}
+.statusBarInfo p{
+    font-size: 2.5vh; 
+    margin: 0; 
+    padding: 0; 
+    color:black; 
+    text-align: center;
+    transform: translate(-50%, -50%); 
+    position: absolute; 
+    bottom: -0.5vh; 
+}
+.backButton button{
+    position: absolute; 
+    bottom: 3vh; 
+    left: 6vw; 
+    transform: translate(-50%, -50%); 
+    height: 8vh; 
+    width: 10vw; 
+    font-size: 5vh;
+}
+.buttonOptions button {
+    position: absolute;
+    transform: translate(-50%, -50%); 
+    height: 36vh; 
+    width: 36vh; 
+}
+.homepageOptions button {
+    position: absolute;
+    transform: translate(-50%, -50%); 
+}
+.buttonText h2 {
+    position: absolute; 
+    transform: translate(-50%, -50%); 
+    color: black; 
+    font-weight: 900;
+    font-size: 3.1vh;
+}

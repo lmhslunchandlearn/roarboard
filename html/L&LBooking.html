@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+    <title>L & L Teacher Sign Up</title>
+    <link rel="stylesheet" href="../others/styling.css">
+    <script src="../others/logic.js" defer></script>
+    <style>
+        /* Blue background, gold text everywhere, and we lock the page so it can't scroll */
+        body {
+            background-color: #1B4F9E;
+            color: #F5C842;
+            font-family: arial, sans-serif;
+            font-weight: 600;
+            overflow: hidden;
+            margin: 0;
+        }
+        /* This is the base style every button gets (gold, rounded oval)*/
+        button {
+            border-radius: 5vh;
+            border: none;
+            cursor: pointer;
+            background-color: #F5C842;
+            text-align: center;
+            overflow: hidden;
+            font-family: arial, sans-serif;
+            font-weight: 900;
+        }
+
+        /* scrollable area in the middle of the page where both teacher grids live */
+        .teacherArea {
+            position: absolute;
+            top: 0;
+            bottom: 50px;
+            left: 0;
+            width: 100%;
+            overflow-y: auto;
+            padding: 10px 230px 140px 230px;
+            box-sizing: border-box;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        /*  Hide the scrollbar */
+        .teacherArea::-webkit-scrollbar {
+            display: none;
+        }
+        /* "A BLOCK" / "B BLOCK" heading above each grid */
+        .blockHeader {
+            font-size: 35px;
+            color: #F5C842;
+            margin: 20px 0 12px 0;
+        }
+        /* Lays teacher buttons out in a grid that reflows itself depending on screen width */
+        .teacherGrid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+            gap: 14px;
+        }
+        /* Sizing for each individual teacher button (name on top, room underneath) */
+        .teacherGrid button {
+            height: 80px;
+            font-size: 22px;
+            color: black;
+            padding: 8px;
+        }
+        /* The smaller line of text under the teacher's name (their room or "ABSENT TODAY") */
+        .teacherGrid button .roomLine {
+            display: block;
+            font-size: 15px;
+            margin-top: 4px;
+        }
+        /* Greys out a teacher's button and makes it unclickable when they are absent */
+        .teacherGrid button.absent {
+            background-color: #9E9E9E;
+            cursor: default;
+        }
+        /* Shows up instead of the grid when a block has no teachers to display */
+        .noneFound {
+            font-size: 25px;
+            color: #F5C842;
+        }
+
+        /* Positions the manual refresh button down in the bottom right corner */
+        .refreshButton button {
+            color: black;
+            position: absolute; 
+            bottom: 3vh; 
+            left: 93.75vw; 
+            transform: translate(-50%, -50%); 
+            height: 7vh; 
+            width:11vw; 
+            font-size: 4.25vh;
+        }
+
+        /* Everything below styles the pop-up you get when you tap a teacher — the dark
+           dimmed backdrop first, then the actual gold-bordered window on top of it */
+        .bookingOverlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: none;
+            z-index: 10;
+        }
+        .bookingWindow {
+            position: absolute;
+            top: 47vh;
+            left: 50vw;
+            transform: translate(-50%, -50%);
+            width: 50vw;
+            height: 80vh;
+            background-color: #1B4F9E;
+            border: 8px solid #F5C842;
+            border-radius: 5vh;
+            padding: 30px 40px 25px 40px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        .bookingWindow h2 {
+            margin: 0;
+            font-size: 5vh;
+            color: #F5C842;
+        }
+        .bookingWindow .roomInfo {
+            margin: 10px 0 20px 0;
+            font-size: 3vh;
+            color: #F5C842;
+        }
+        .bookingWindow input {
+            width: 100%;
+            font-size: 3vh;
+            font-family: arial, sans-serif;
+            font-weight: 900;
+            padding: 15px;
+            border-radius: 5vh;
+            border: none;
+            background-color: #F5C842;
+            color: black;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        .bookingWindow input::placeholder { 
+            color: black; 
+            opacity: 0.6; 
+        }
+
+        /* Styling for the on screen keyboard the student types their name on */
+        .keyboard { margin-top: 20px; }
+        .keyboardRow {
+            display: flex;
+            justify-content: center;
+            gap: 1vh;
+            margin-bottom: 1vh;
+        }
+        .keyboardRow button {
+            width: 6.5vh;
+            height: 6.5vh;
+            font-size: 3vh;
+            color: black;
+            border-radius: 1.5vh;
+        }
+        .keyboardRow button.wideKey { 
+            width: 160px; 
+            font-size: 25px; 
+        }
+        .keyboardRow button.spaceKey { 
+            width: 40vh; 
+            font-size: 25px; 
+        }
+
+        /* Puts the CANCEL and SIGN UP buttons side by side at the bottom of the pop-up */
+        .bookingActions {
+            display: flex;
+            justify-content: center;
+            gap: 0.25vh;
+            margin-top: 0.2vh;
+        }
+        .bookingActions button {
+            height: 10vh;
+            font-size: 4vh;
+            color: black;
+            padding: 0 45px;
+            top: 85vh;
+        }
+        /* Stays hidden unless something goes wrong with the sign-up — then we reveal it with JS */
+        .errorText {
+            display: none;
+            margin: 15px 0 0 0;
+            font-size: 2.2vh;
+            color: #F5C842;
+        }
+
+        /* The "SUCCESSFUL!" screen that swaps in after a sign-up goes through */
+        .confirmWindow { display: none; }
+        .confirmWindow h2 {
+            margin: 0;
+            font-size: 60px;
+            color: #F5C842;
+        }
+        .confirmWindow p {
+            font-size: 30px;
+            color: #F5C842;
+        }
+        
+    </style>
+    <script defer>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        // This URL points at our Google Apps Script — it hands us the teacher list when we
+        // GET it, and emails a sign-up whenever we POST one. Swap in your own deployed URL here.
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyH6bjH86EV8qIwq-M3E7gBWIlYgjO6-Vzb0XgD2oo7Zj6HMAXItCqiBJUv4gTt1aLV/exec";
+
+        // If the kiosk loses internet and can't reach the sheet, we fall back to this list instead
+        const FALLBACK = [];
+
+        let teachers = [];   // whatever teacher list we last managed to load
+        let current = null;  // the teacher the student is currently booking (null when no pop-up is open)
+
+
+        // ----- Getting the teacher list from the spreadsheet -----
+        // Turns one raw spreadsheet row into a clean teacher object, or returns null if the
+        // row is blank/a header row so we can just skip it
+        function toTeacher(cols) {
+            const name = (cols[0] || "").trim();
+            const room = (cols[1] || "").trim();
+            const avail = (cols[2] || "").trim();
+            if (!name || name.toLowerCase().startsWith("teacher name")) return null;
+            const block = avail.charAt(0).toUpperCase() === "B" ? "B" : "A";
+            return {
+                name: name,
+                room: room,
+                block: block,
+                absent: (cols[4] || "").trim().toUpperCase() === "N"
+            };
+        }
+
+        // Goes and fetches the current teacher list from the sheet, and re-draws the grids
+        // once it's back. If the fetch fails for any reason, we quietly fall back to FALLBACK
+        // instead of leaving the student staring at a broken page.
+        function loadTeachers() {
+            fetch(SCRIPT_URL)
+                .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+                .then(data => {
+                    const list = [];
+                    (data.teachers || []).forEach(item => {
+                        const t = toTeacher([item.name, item.room, item.avail, "", item.available ? "Y" : "N"]);
+                        if (t) list.push(t);
+                    });
+                    if (!list.length) throw new Error("empty");
+                    teachers = list;
+                    render("");
+                })
+                .catch(() => {
+                    teachers = [];
+                    FALLBACK.forEach(cols => {
+                        const t = toTeacher(cols);
+                        if (t) teachers.push(t);
+                    });
+                    render("");
+                });
+        }
+
+
+
+        // ----- Drawing the teacher grids -----
+        // Wipes both grids and rebuilds them from scratch based on whatever's in `teachers` —
+        // sorted alphabetically, split into the A/B grids, absent teachers grayed out
+        function render() {
+            const gridA = document.getElementById("gridA");
+            const gridB = document.getElementById("gridB");
+            gridA.innerHTML = "";
+            gridB.innerHTML = "";
+            let countA = 0, countB = 0;
+
+            const sorted = teachers.slice().sort((a, b) => a.name.localeCompare(b.name));
+
+            sorted.forEach(t => {
+                const btn = document.createElement("button");
+                if (t.absent) {
+                    btn.className = "absent";
+                    btn.disabled = true;
+                    btn.innerHTML = t.name + '<span class="roomLine">ABSENT TODAY</span>';
+                } else {
+                    btn.innerHTML = t.name +
+                        '<span class="roomLine">' +
+                        (t.room ? "Room " + t.room : "N/A") +
+                        "</span>";
+                    btn.onclick = function () { openBooking(t); };
+                }
+
+                if (t.block === "B") { gridB.appendChild(btn); countB++; }
+                else { gridA.appendChild(btn); countA++; }
+            });
+
+            document.getElementById("noneA").style.display = countA ? "none" : "block";
+            document.getElementById("noneB").style.display = countB ? "none" : "block";
+        }
+
+
+
+        // ----- On-screen keyboard for typing the student's name -----
+        // Just the letters, row by row, in QWERTY order (no numbers — names don't need them)
+        const KEY_ROWS = [
+            ["Q","W","E","R","T","Y","U","I","O","P"],
+            ["A","S","D","F","G","H","J","K","L"],
+            ["Z","X","C","V","B","N","M","-","'"]
+        ];
+        const nameInput = document.getElementById("studentName");
+
+        // Handles a single key tap — deletes a letter, adds a space, or types a letter
+        function pressKey(value) {
+            if (value === "BACK") {
+                nameInput.value = nameInput.value.slice(0, -1);
+            } else if (value === " ") {
+                if (nameInput.value) nameInput.value += " ";
+            } else {
+                // Auto-capitalizes the first letter of each word so students don't have to
+                // hunt for a shift key that doesn't exist
+                const v = nameInput.value;
+                const prev = v.slice(-1);
+                const ch = (v === "" || prev === " " || prev === "-" || prev === "'") ? value : value.toLowerCase();
+                nameInput.value = v + ch;
+            }
+        }
+
+        // Actually creates the keyboard buttons and drops them into the page, row by row,
+        // plus the SPACE and DELETE keys on their own row at the bottom
+        function buildKeyboard() {
+            const kbd = document.getElementById("keyboard");
+            KEY_ROWS.forEach(rowKeys => {
+                const rowEl = document.createElement("div");
+                rowEl.className = "keyboardRow";
+                rowKeys.forEach(k => {
+                    const b = document.createElement("button");
+                    b.textContent = k;
+                    b.onclick = function () { pressKey(k); };
+                    rowEl.appendChild(b);
+                });
+                kbd.appendChild(rowEl);
+            });
+            const lastRow = document.createElement("div");
+            lastRow.className = "keyboardRow";
+            const space = document.createElement("button");
+            space.className = "spaceKey";
+            space.textContent = "SPACE";
+            space.onclick = function () { pressKey(" "); };
+            const back = document.createElement("button");
+            back.className = "wideKey";
+            back.textContent = "DELETE";
+            back.onclick = function () { pressKey("BACK"); };
+            lastRow.appendChild(space);
+            lastRow.appendChild(back);
+            kbd.appendChild(lastRow);
+        }
+
+
+
+        // ----- The pop-up window for booking a teacher -----
+        const overlay = document.getElementById("bookingOverlay");
+
+        // Opens the pop-up for a specific teacher and resets it to a clean state —
+        // clears any name that was typed last time, hides old errors, shows the form (not the success screen)
+        function openBooking(t) {
+            current = t;
+            document.getElementById("bkTeacher").textContent = t.name;
+            document.getElementById("bkRoom").textContent =
+                (t.room ? "Room " + t.room : "N/A") +
+                "  |  " + t.block + " Block";
+            nameInput.value = "";
+            document.getElementById("errorText").style.display = "none";
+            const bookBtn = document.getElementById("btnBook");
+            bookBtn.disabled = false;
+            bookBtn.textContent = "SIGN UP";
+            document.getElementById("bookingView").style.display = "block";
+            document.getElementById("confirmView").style.display = "none";
+            overlay.style.display = "block";
+        }
+
+        // Just hides the pop-up and forgets which teacher was selected
+        function closeBooking() {
+            overlay.style.display = "none";
+            current = null;
+        }
+
+        document.getElementById("btnCancel").onclick = closeBooking;
+        // Tapping the dark backdrop outside the window also closes it, same as tapping Cancel
+        overlay.addEventListener("click", function (e) {
+            if (e.target === overlay) closeBooking();
+        });
+
+        // ----- Submitting the sign-up -----
+        // Fires when the student taps SIGN UP: validates there's a name and a selected teacher,
+        // then sends it off to the Apps Script so it can email the teacher
+        document.getElementById("btnBook").onclick = function () {
+            const student = nameInput.value.trim();
+            if (!student || !current) return;
+
+            const bookBtn = document.getElementById("btnBook");
+            bookBtn.disabled = true;
+            bookBtn.textContent = "SIGNING UP...";
+            document.getElementById("errorText").style.display = "none";
+
+            if (SCRIPT_URL.indexOf("http") !== 0) {
+                bookBtn.disabled = false;
+                bookBtn.textContent = "SIGN UP";
+                const errEl = document.getElementById("errorText");
+                errEl.textContent = "Setup needed: paste the Apps Script URL into SCRIPT_URL at the top of the code.";
+                errEl.style.display = "block";
+                return;
+            }
+
+            // We use "no-cors" here, which basically means fire-and-forget — the browser won't
+            // let us read Google's response, but the request still goes through and the email
+            // still gets sent, so that's fine for our purposes
+            fetch(SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors",
+                body: JSON.stringify({
+                    student: student,
+                    teacher: current.name,
+                    room: current.room || "Not listed",
+                    block: current.block + " Block",
+                    booked: new Date().toLocaleString()
+                })
+            })
+            .then(() => {
+                document.getElementById("confirmText").textContent =
+                    student + " is meeting " + current.name +
+                    (current.room ? " in Room " + current.room : "") +
+                    " during " + current.block + " Block";
+                document.getElementById("bookingView").style.display = "none";
+                document.getElementById("confirmView").style.display = "block";
+                setTimeout(function () {
+                    closeBooking();
+                }, 6000);
+            })
+            .catch(() => {
+                bookBtn.disabled = false;
+                bookBtn.textContent = "SIGN UP";
+                const errEl = document.getElementById("errorText");
+                errEl.textContent = "Sign up didn't send. Check the internet connection and try again.";
+                errEl.style.display = "block";
+            });
+        };
+
+
+
+        // ----- Kicking everything off once the page loads -----
+        buildKeyboard();
+        loadTeachers();
+        // Every 5 minutes, quietly pull the sheet again so newly-marked absences show up on
+        // their own — but skip it while a student has a booking window open so we don't yank
+        // the page out from under them
+        setInterval(function () {
+            if (overlay.style.display !== "block") loadTeachers();
+        }, 300000);
+
+        // Lets someone force an immediate refresh instead of waiting for the 5-minute timer
+        // Heads up: there's no element with id="btnRefresh" in the HTML below yet (and the
+        // .refreshButton CSS rule has nothing to style either), so this line will error out
+        // until that button gets added to the page.
+        document.getElementById("btnRefresh").onclick = function () {
+            const btn = document.getElementById("btnRefresh");
+            btn.disabled = true;
+            btn.textContent = "...";
+            loadTeachers();
+            setTimeout(function () {
+                btn.disabled = false;
+                btn.textContent = "REFRESH";
+            }, 1500);
+        };
+    });
+    </script>
+</head>
+<body>
+
+    <!-- These two grids start out empty — the script fills them in with teacher buttons once
+         the sheet data has loaded -->
+    <div class="teacherArea">
+        <h2 class="blockHeader">1st Block</h2>
+        <div class="teacherGrid" id="gridA"></div>
+        <p class="noneFound" id="noneA" style="display:none;">No teachers found.</p>
+
+        <h2 class="blockHeader">2nd Block</h2>
+        <div class="teacherGrid" id="gridB"></div>
+        <p class="noneFound" id="noneB" style="display:none;">No teachers found.</p>
+    </div>
+
+
+
+    <!-- Sitting here as a placeholder for a loading message — nothing writes to it yet -->
+    <span id="load-status"></span>
+
+    <!-- The booking pop-up. Hidden by default (see .bookingOverlay { display: none }) and
+         only shown once a student taps a teacher's button -->
+    <div class="bookingOverlay" id="bookingOverlay">
+        <div class="bookingWindow">
+            <!-- The actual sign-up form: teacher name, room, name input, keyboard, buttons -->
+            <div id="bookingView">
+                <h2 id="bkTeacher">Teacher</h2>
+                <p class="roomInfo" id="bkRoom"></p>
+                <input id="studentName" type="text" placeholder="TYPE YOUR FULL NAME" autocomplete="off" readonly>
+                <div class="keyboard" id="keyboard"></div>
+                <div class="bookingActions">
+                    <button id="btnCancel">CANCEL</button>
+                    <button id="btnBook">SIGN UP</button>
+                </div>
+                <p class="errorText" id="errorText">Sign up didn't send. Please try again.</p>
+            </div>
+            <!-- Swapped in over the form once the sign-up actually goes through -->
+            <div class="confirmWindow" id="confirmView">
+                <h2>SUCCESSFUL!</h2>
+                <p id="confirmText"></p>
+                <p>This screen will reset in a few seconds.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- The gold strip along the bottom: today's date on the left, page title in the middle,
+         and the color day on the right. The actual date/color-day text gets filled in by
+         ../../others/logic.js, and its look comes from ../../others/styling.css -->
+    <div class="statusBar"></div>
+    <div class="statusBarInfo">
+        <p style="transform: translate(0%, -50%);  left: 1vw;"><time id="date-display"></time></p>
+        <p style="left: 93.5vw; white-space: nowrap;">Color Day: <span id="color-day-display"></span></p>
+        <p style="left: 50vw;">Lunch & Learn Teacher Sign Ups</p>
+    </div>
+
+    <!-- Sends the student back to the main student page -->
+    <div class="backButton">
+        <button style="font-weight: 600;" onclick="history.back()">BACK</button>
+    </div>
+
+    <!-- Little reminder box explaining that late sign-ups count for the next day -->
+    <div style="font-size: 1.65vh; border-radius: 3vh; padding-inline: 0.5vw; background-color: #F5C842; width: 9vw; height: 14vh; position: absolute; bottom: 11vh; left: 6vw; transform: translate(-50%, -50%); text-align: center;">
+        <p style="color: black;">Note: Sign ups made during or after Lunch & Learn will be considered to be for the following day</p>
+    </div>
+
+</body>
+</html>

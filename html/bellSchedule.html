@@ -1,0 +1,26 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+    <title>Bell Schedule</title>
+    <link rel="stylesheet" href="../others/styling.css">
+    <script src="../others/logic.js" defer></script>
+</head>
+<body>
+
+    <div class="bellSchedule"> <!-- show bell schedule for each day (pulls which image to use from logic.js, which uses an external sheet to determine the schedule) -->
+        <img id="schedule" src="" alt="Bell Schedule" style="border-radius: 0; width: 65vw; height: auto; position: absolute; left: 50vw; top: 47.5vh; transform: translate(-50%, -50%);">
+    </div> <!-- id="schedule" has the image source linked to it from logic.js -->
+
+    <div class="statusBar"></div> <!-- status bar at bottom of the page -->
+    <div class="statusBarInfo"> 
+        <p style="transform: translate(0%, -50%);  left: 1vw;"><time id="date-display"></time></p>
+        <p style="left: 93.5vw; white-space: nowrap;">Color Day: <span id="color-day-display"></span></p>
+        <p style="left: 50vw;">Bell Schedule</p>
+    </div>
+
+    <div class="backButton"> <!-- go back to previous page -->
+        <button onclick="history.back()">BACK</button>
+    </div>
+</body>
+</html>

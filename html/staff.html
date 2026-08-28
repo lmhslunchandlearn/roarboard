@@ -1,0 +1,39 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+    <title>Staff</title>
+    <link rel="stylesheet" href="../others/styling.css">
+    <script src="../others/logic.js" defer></script>
+</head>
+<body>
+    <div class="buttonOptions"> <!-- different buttons for staff to click on -->
+        <button onclick="window.location.href='announcements.html'" style="top: 47vh; left: 20vw;">
+            <img src="../pictures/announcements.png" style="height: 36vh; width: auto;" alt="Announcements Logo">
+        </button>
+        <button onclick="window.location.href='bellSchedule.html'" style="top: 47vh; left: 50vw;">
+            <img src="../pictures/bellSchedule.png" style="height: 36vh; width: auto;" alt="Bell Schedule Logo">
+        </button>
+        <button onclick="window.location.href='calendar.html'" style="top: 47vh; left: 80vw;">
+            <img src="../pictures/calendar.png" style="height: 36vh; width: auto; top: 48%;" alt="Calendar Logo">
+        </button>
+    </div>
+
+    <div class="buttonText"> <!-- text for buttons -->
+        <h2 style="top: 65vh; left: 20vw;">ANNOUNCEMENTS</h2>
+        <h2 style="top: 65vh; left: 50vw;">BELL SCHEDULE</h2>
+        <h2 style="top: 65vh; left: 80vw;">CALENDAR</h2>
+    </div>
+
+    <div class="statusBar"></div> <!-- status bar at bottom of the page -->
+    <div class="statusBarInfo"> 
+        <p style="transform: translate(0%, -50%);  left: 1vw;"><time id="date-display"></time></p>
+        <p style="left: 93.5vw; white-space: nowrap;">Color Day: <span id="color-day-display"></span></p>
+        <p style="left: 50vw;">Staff</p>
+    </div>
+
+    <div class="backButton"> <!-- go back to previous page (homepage) -->
+        <button onclick="history.back()">BACK</button>
+    </div>
+</body>
+</html>

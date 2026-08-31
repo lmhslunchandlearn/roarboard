@@ -85,7 +85,7 @@ async function getColorDayandSchedule() {
     var threeHourDelaySchedule = "../pictures/3HourDelaySchedule.png";
     var today = new Date(); // month number is one less than actual month (e.g. 8 = Sept)
     var startDate = new Date(2026, 7, 31);
-    var colorDay = "Blue";
+    var colorDay = "Gold";
 
     var calendar = await getCalendar();
 
